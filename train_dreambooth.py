@@ -1092,6 +1092,7 @@ def main(args):
     if accelerator.is_main_process:
         if args.use_lora:
             unwarpped_unet = accelerator.unwrap_model(unet)
+            unet.print_trainable_parameters()
             for name, param in unwarpped_unet.named_parameters():
                 if not param.is_contiguous():
                     param.data = param.data.contiguous()
