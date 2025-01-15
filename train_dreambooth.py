@@ -181,6 +181,7 @@ def parse_args(input_args=None):
 
     # lora args
     parser.add_argument("--use_lora", action="store_true", help="Whether to use Lora for parameter efficient tuning")
+    parser.add_argument("--lora_xs", action="store_true", help="Whether to use Lora-XS for parameter efficient tuning")
     parser.add_argument("--lora_r", type=int, default=8, help="Lora rank, only used if use_lora is True")
     parser.add_argument("--lora_alpha", type=int, default=32, help="Lora alpha, only used if use_lora is True")
     parser.add_argument("--lora_dropout", type=float, default=0.0, help="Lora dropout, only used if use_lora is True")
@@ -723,20 +724,21 @@ def main(args):
             bias=args.lora_bias,
         )
         unet = get_peft_model(unet, config)
-        unet.print_trainable_parameters()
-        with open("LoRA_XS/config/reconstruct_config.yaml", 'r') as stream:
-            reconstr_config = yaml.load(stream, Loader=yaml.FullLoader)
+        if args.lora_xs:
+            unet.print_trainable_parameters()
+            with open("LoRA_XS/config/reconstruct_config.yaml", 'r') as stream:
+                reconstr_config = yaml.load(stream, Loader=yaml.FullLoader)
 
-        adapter_name = "default"  # assuming a single LoRA adapter per module should be transformed to LoRA_XS
-        peft_config_dict = {adapter_name: config}
+            adapter_name = "default"  # assuming a single LoRA adapter per module should be transformed to LoRA_XS
+            peft_config_dict = {adapter_name: config}
 
-        # specifying LoRA rank for the SVD initialization
-        reconstr_config['svd']['rank'] = args.lora_r
+            # specifying LoRA rank for the SVD initialization
+            reconstr_config['svd']['rank'] = args.lora_r
 
-        find_and_initialize(
-            unet, peft_config_dict, adapter_name=adapter_name, reconstr_type='svd',
-            writer=None, reconstruct_config=reconstr_config
-        )
+            find_and_initialize(
+                unet, peft_config_dict, adapter_name=adapter_name, reconstr_type='svd',
+                writer=None, reconstruct_config=reconstr_config
+            )
         print(unet)
         print("---- TRAINABLE PARAMETERS -----")
         unet.print_trainable_parameters()
@@ -754,20 +756,20 @@ def main(args):
         )
         text_encoder = get_peft_model(text_encoder, config)
         text_encoder.print_trainable_parameters()
+        if args.lora_xs:
+            with open("LoRA_XS/config/reconstruct_config.yaml", 'r') as stream:
+                reconstr_config = yaml.load(stream, Loader=yaml.FullLoader)
 
-        with open("LoRA_XS/config/reconstruct_config.yaml", 'r') as stream:
-            reconstr_config = yaml.load(stream, Loader=yaml.FullLoader)
+            adapter_name = "default"  # assuming a single LoRA adapter per module should be transformed to LoRA_XS
+            peft_config_dict = {adapter_name: config}
 
-        adapter_name = "default"  # assuming a single LoRA adapter per module should be transformed to LoRA_XS
-        peft_config_dict = {adapter_name: config}
+            # specifying LoRA rank for the SVD initialization
+            reconstr_config['svd']['rank'] = args.lora_text_encoder_r
 
-        # specifying LoRA rank for the SVD initialization
-        reconstr_config['svd']['rank'] = args.lora_text_encoder_r
-
-        find_and_initialize(
-            text_encoder, peft_config_dict, adapter_name=adapter_name, reconstr_type='svd',
-            writer=None, reconstruct_config=reconstr_config
-        )
+            find_and_initialize(
+                text_encoder, peft_config_dict, adapter_name=adapter_name, reconstr_type='svd',
+                writer=None, reconstruct_config=reconstr_config
+            )
 
         print(text_encoder)
 
