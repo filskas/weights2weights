@@ -1092,11 +1092,17 @@ def main(args):
     if accelerator.is_main_process:
         if args.use_lora:
             unwarpped_unet = accelerator.unwrap_model(unet)
+            for name, param in unwarpped_unet.named_parameters():
+                if not param.is_contiguous():
+                    param.data = param.data.contiguous()
             unwarpped_unet.save_pretrained(
                 os.path.join(args.output_dir, "unet"), state_dict=accelerator.get_state_dict(unet)
             )
             if args.train_text_encoder:
                 unwarpped_text_encoder = accelerator.unwrap_model(text_encoder)
+                for name, param in unwarpped_text_encoder.named_parameters():
+                    if not param.is_contiguous():
+                        param.data = param.data.contiguous()
                 unwarpped_text_encoder.save_pretrained(
                     os.path.join(args.output_dir, "text_encoder"),
                     state_dict=accelerator.get_state_dict(text_encoder),
